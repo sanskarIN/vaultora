@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Vaultora shield mark">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7467ff"/><stop offset="1" stop-color="#4334d8"/></linearGradient></defs>
+  <path fill="url(#g)" d="M64 7 108 23v34c0 29-17 52-44 64C37 109 20 86 20 57V23L64 7Z"/>
+  <path fill="#fff" d="M64 31c-13 0-23 10-23 23v8h-5v30h56V62h-5v-8c0-13-10-23-23-23Zm0 10c7 0 13 6 13 13v8H51v-8c0-7 6-13 13-13Zm0 31a7 7 0 0 1 4 13v4h-8v-4a7 7 0 0 1 4-13Z"/>
+</svg>
