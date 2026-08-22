@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Minimum desktop permissions required by Vaultora.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text",
+    "dialog:allow-open",
+    "dialog:allow-save"
+  ]
+}
