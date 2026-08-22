@@ -1,0 +1,148 @@
+name: Materialize staged Vaultora bootstrap
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.bootstrap/**'
+      - '.github/workflows/materialize-bootstrap.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vaultora-bootstrap-materialization
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Materialize staged project
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          shopt -s nullglob
+          parts=(.bootstrap/vaultora.tar.gz.b64.part-*)
+          if (( ${#parts[@]} == 0 )); then
+            echo "Bootstrap payload is already materialized; nothing to do."
+            exit 0
+          fi
+
+          git config user.name "Sanskar"
+          git config user.email "sanskarin@outlook.in"
+
+          workdir="$(mktemp -d)"
+          trap 'rm -rf "$workdir"' EXIT
+
+          cat "${parts[@]}" > "$workdir/vaultora.tar.gz.b64"
+          base64 --decode "$workdir/vaultora.tar.gz.b64" > "$workdir/vaultora.tar.gz"
+          tar -tzf "$workdir/vaultora.tar.gz" > "$workdir/manifest.txt"
+          tar -xzf "$workdir/vaultora.tar.gz" -C "$workdir/extracted"
+
+          src="$workdir/extracted"
+          mkdir -p "$src"
+          entries=("$src"/* "$src"/.[!.]* "$src"/..?*)
+          if (( ${#entries[@]} == 1 )) && [[ -d "${entries[0]}" ]]; then
+            candidate="${entries[0]}"
+            if [[ -f "$candidate/package.json" || -f "$candidate/Cargo.toml" || -f "$candidate/README.md" || -d "$candidate/src-tauri" ]]; then
+              src="$candidate"
+            fi
+          fi
+
+          rsync -a --exclude='.git' --exclude='.bootstrap' "$src"/ ./
+          rm -rf .bootstrap
+
+          commit_paths() {
+            local message="$1"
+            shift
+            git add -A -- "$@" 2>/dev/null || true
+            if ! git diff --cached --quiet; then
+              git commit -m "$message"
+            fi
+          }
+
+          # Repository and policy baseline.
+          commit_paths "chore: materialize repository standards" \
+            .editorconfig .gitattributes .gitignore .npmrc .nvmrc .prettierignore .prettierrc* \
+            package.json package-lock.json pnpm-lock.yaml yarn.lock Cargo.toml Cargo.lock rust-toolchain.toml rustfmt.toml \
+            LICENSE NOTICE .env.example
+
+          # Commit top-level project documents separately where present so history remains reviewable.
+          for spec in \
+            "README.md|docs: add project readme" \
+            "ARCHITECTURE.md|docs: add architecture overview" \
+            "CONTRIBUTING.md|docs: add contribution guide" \
+            "CODE_OF_CONDUCT.md|docs: add code of conduct" \
+            "SECURITY.md|docs: add security policy" \
+            "THREAT_MODEL.md|docs: add threat model" \
+            "PRIVACY.md|docs: add privacy policy" \
+            "SUPPORT.md|docs: add support guide" \
+            "ROADMAP.md|docs: add product roadmap" \
+            "CHANGELOG.md|docs: add changelog"; do
+            path="${spec%%|*}"
+            message="${spec#*|}"
+            [[ -e "$path" ]] && commit_paths "$message" "$path"
+          done
+
+          # Developer documentation, one topic at a time when present.
+          if [[ -d docs ]]; then
+            while IFS= read -r -d '' file; do
+              slug="${file#docs/}"
+              slug="${slug%.md}"
+              slug="${slug//\// }"
+              slug="${slug//_/ }"
+              commit_paths "docs: add ${slug} guidance" "$file"
+            done < <(find docs -type f -name '*.md' -print0 | sort -z)
+            commit_paths "docs: add documentation assets" docs
+          fi
+
+          # GitHub automation and community files.
+          if [[ -d .github ]]; then
+            # Do not re-stage the already committed bootstrap workflow unless the archive intentionally changed it.
+            while IFS= read -r -d '' file; do
+              [[ "$file" == ".github/workflows/materialize-bootstrap.yml" ]] && continue
+              commit_paths "ci: add ${file#.github/}" "$file"
+            done < <(find .github -type f -print0 | sort -z)
+          fi
+
+          # Frontend source: commit cohesive files/directories in small reviewable units.
+          for path in index.html vite.config.* tsconfig*.json eslint.config.* src/styles src/assets src/components src/features src/pages src/lib src/hooks src/store src/types src/i18n src; do
+            if compgen -G "$path" >/dev/null 2>&1; then
+              commit_paths "feat: materialize ${path%%.*}" $path
+            fi
+          done
+
+          # Tauri/Rust application: configuration first, then migrations/modules/tests.
+          if [[ -d src-tauri ]]; then
+            commit_paths "build: add Tauri application configuration" \
+              src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/build.rs src-tauri/tauri.conf.json src-tauri/capabilities src-tauri/icons
+            [[ -d src-tauri/migrations ]] && commit_paths "feat: add vault database migrations" src-tauri/migrations
+            if [[ -d src-tauri/src ]]; then
+              while IFS= read -r -d '' file; do
+                rel="${file#src-tauri/src/}"
+                commit_paths "feat: add Rust module ${rel%.rs}" "$file"
+              done < <(find src-tauri/src -type f -name '*.rs' -print0 | sort -z)
+              commit_paths "feat: add remaining Rust application sources" src-tauri/src
+            fi
+            [[ -d src-tauri/tests ]] && commit_paths "test: add Rust integration tests" src-tauri/tests
+            commit_paths "build: add remaining Tauri resources" src-tauri
+          fi
+
+          # Remaining tests and project assets.
+          [[ -d tests ]] && commit_paths "test: add application test suites" tests
+          [[ -d e2e ]] && commit_paths "test: add end-to-end coverage" e2e
+          [[ -d public ]] && commit_paths "feat: add public application assets" public
+          [[ -d scripts ]] && commit_paths "chore: add development scripts" scripts
+
+          # Materialization cleanup and any archive paths not covered above.
+          commit_paths "chore: complete bootstrap materialization" .
+
+          git push origin HEAD:main
