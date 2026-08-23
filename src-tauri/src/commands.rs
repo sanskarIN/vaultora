@@ -1,7 +1,7 @@
 use crate::crypto::{default_kdf_descriptor, decrypt_data, derive_key, encrypt_data, new_salt};
 use crate::error::{CommandError, CommandResult, VaultError};
 use crate::generator::{self, PassphraseOptions, PasswordOptions};
-use crate::model::{EntryInput, EntrySummary, PasswordStrength, SessionSnapshot, VaultEntry, VaultSettings};
+use crate::model::{EntryInput, EntryKind, EntrySummary, PasswordStrength, SessionSnapshot, VaultEntry, VaultSettings};
 use crate::state::{AppState, VaultSession};
 use chrono::Utc;
 use std::path::PathBuf;
@@ -99,21 +99,22 @@ pub fn upsert_entry(state: State<'_, AppState>, input: EntryInput) -> CommandRes
         let now = Utc::now();
         match input.id.and_then(|id| session.data.entries.iter().position(|entry| entry.id == id)) {
             Some(index) => {
-                let created_at = session.data.entries[index].created_at;
-                session.data.entries[index] = VaultEntry {
-                    id: session.data.entries[index].id,
-                    kind: input.kind,
-                    name: input.name,
-                    username: input.username,
-                    url: input.url,
-                    secret: input.secret,
-                    notes: input.notes,
-                    fields: input.fields,
-                    tags: input.tags,
-                    favorite: input.favorite,
-                    created_at,
-                    updated_at: now,
-                };
+                let existing = &mut session.data.entries[index];
+                if input.kind == EntryKind::Login {
+                    existing.record_password_change(&input.secret, now);
+                } else {
+                    existing.password_history.clear();
+                }
+                existing.kind = input.kind;
+                existing.name = input.name;
+                existing.username = input.username;
+                existing.url = input.url;
+                existing.secret = input.secret;
+                existing.notes = input.notes;
+                existing.fields = input.fields;
+                existing.tags = input.tags;
+                existing.favorite = input.favorite;
+                existing.updated_at = now;
             }
             None => session.data.entries.push(VaultEntry {
                 id: input.id.unwrap_or_else(Uuid::new_v4),
@@ -122,6 +123,7 @@ pub fn upsert_entry(state: State<'_, AppState>, input: EntryInput) -> CommandRes
                 username: input.username,
                 url: input.url,
                 secret: input.secret,
+                password_history: Vec::new(),
                 notes: input.notes,
                 fields: input.fields,
                 tags: input.tags,
