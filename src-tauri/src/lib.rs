@@ -1,3 +1,4 @@
+pub mod audit;
 mod commands;
 pub mod crypto;
 pub mod error;
@@ -41,6 +42,7 @@ pub fn run() {
             commands::export_vault,
             commands::import_vault,
             commands::change_master_password,
+            audit::security_audit,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Vaultora");
