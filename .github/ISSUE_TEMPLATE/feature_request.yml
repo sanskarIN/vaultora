@@ -1,0 +1,49 @@
+name: Feature request
+description: Propose a product or engineering improvement
+title: "feat: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Vaultora prioritizes data safety and a small attack surface. Network, key-management, browser-integration, biometric, sharing, or persistent-format features need explicit security analysis.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the user problem rather than only the implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: security
+    attributes:
+      label: Security and privacy impact
+      description: What new data, permissions, network access, persistence, or trust boundaries would this introduce?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Include a simpler/local-only alternative when relevant.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and ROADMAP.md for this request.
+          required: true
+        - label: I did not include private vault data or real credentials.
+          required: true
