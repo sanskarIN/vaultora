@@ -214,6 +214,7 @@ mod tests {
             username: "person@example.test".into(),
             url: "https://example.test".into(),
             secret: secret.into(),
+            password_history: Vec::new(),
             notes: String::new(),
             fields: BTreeMap::new(),
             tags: Vec::new(),
