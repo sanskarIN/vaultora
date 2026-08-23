@@ -1,8 +1,11 @@
+use crate::error::{CommandError, CommandResult, VaultError};
 use crate::generator;
 use crate::model::{EntryKind, VaultEntry};
+use crate::state::AppState;
 use chrono::{Duration, Utc};
 use serde::Serialize;
 use std::collections::HashMap;
+use tauri::State;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -160,6 +163,18 @@ pub fn analyze(entries: &[VaultEntry]) -> SecurityAuditReport {
             .filter(|entry| !unhealthy_ids.contains(&entry.id))
             .count(),
     }
+}
+
+#[tauri::command]
+pub fn security_audit(state: State<'_, AppState>) -> CommandResult<SecurityAuditReport> {
+    let guard = state
+        .session
+        .lock()
+        .map_err(|_| CommandError::from(VaultError::Storage("session lock poisoned".into())))?;
+    let session = guard
+        .as_ref()
+        .ok_or_else(|| CommandError::from(VaultError::Locked))?;
+    Ok(analyze(&session.data.entries))
 }
 
 fn finding(
