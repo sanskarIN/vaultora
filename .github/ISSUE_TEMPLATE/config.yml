@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: mailto:supportramsandesh@gmail.com
+    about: Report security-sensitive findings privately; do not post secrets or exploit details publicly.
+  - name: Support guide
+    url: https://github.com/sanskarIN/vaultora/blob/main/SUPPORT.md
+    about: Check troubleshooting and support guidance before opening an issue.
