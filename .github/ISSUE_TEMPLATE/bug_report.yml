@@ -1,0 +1,75 @@
+name: Bug report
+description: Report a reproducible non-security Vaultora defect
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Vaultora. **Do not include real vault data, master passwords, credentials, private keys, recovery codes, or identity data.** Security vulnerabilities belong in the private process described in SECURITY.md.
+
+  - type: input
+    id: version
+    attributes:
+      label: Vaultora version or commit
+      placeholder: "v0.2.0-rc.1 or commit SHA"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Use fictional test data only.
+      placeholder: |
+        1. Open ...
+        2. Create a fictional ...
+        3. Click ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs or screenshots
+      description: Remove secrets and personal data before posting.
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety checks
+      options:
+        - label: I have not included real passwords, vault files, recovery data, private keys, tokens, or personal identity data.
+          required: true
+        - label: This is not a security vulnerability requiring private disclosure.
+          required: true
+        - label: I searched existing issues for the same problem.
+          required: true
