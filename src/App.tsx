@@ -10,7 +10,7 @@ import { SecurityAuditPanel } from "./components/SecurityAuditPanel";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { strings } from "./i18n/en";
 import type { AppScreen, EntryKind, EntrySummary, SessionSnapshot, VaultEntry } from "./types";
-import { applyTheme, filterEntries, kindLabel } from "./utils";
+import { applyTheme, filterEntries, kindLabel, shouldAutoLock } from "./utils";
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -40,19 +40,39 @@ export default function App() {
     }
   }, []);
 
+  const autoLockMinutes = snapshot?.settings.auto_lock_minutes;
   useEffect(() => {
-    if (!snapshot) return;
-    const activity = () => { lastActivity.current = Date.now(); };
-    const events: (keyof WindowEventMap)[] = ["pointerdown", "keydown", "wheel", "focus"];
+    if (!autoLockMinutes) return;
+
+    const expired = (now: number) => shouldAutoLock(lastActivity.current, now, autoLockMinutes);
+    const activity = () => {
+      const now = Date.now();
+      if (expired(now)) {
+        void lock();
+        return;
+      }
+      lastActivity.current = now;
+    };
+    const checkInactivity = () => {
+      if (expired(Date.now())) void lock();
+    };
+    const checkVisibility = () => {
+      if (document.visibilityState === "visible") checkInactivity();
+    };
+
+    const events: (keyof WindowEventMap)[] = ["pointerdown", "keydown", "wheel"];
     events.forEach((event) => window.addEventListener(event, activity, { passive: true }));
-    const interval = window.setInterval(() => {
-      if (Date.now() - lastActivity.current >= snapshot.settings.auto_lock_minutes * 60_000) void lock();
-    }, 5_000);
+    window.addEventListener("focus", checkInactivity);
+    document.addEventListener("visibilitychange", checkVisibility);
+    const interval = window.setInterval(checkInactivity, 5_000);
+
     return () => {
       events.forEach((event) => window.removeEventListener(event, activity));
+      window.removeEventListener("focus", checkInactivity);
+      document.removeEventListener("visibilitychange", checkVisibility);
       window.clearInterval(interval);
     };
-  }, [snapshot, lock]);
+  }, [autoLockMinutes, lock]);
 
   const visibleEntries = useMemo(
     () => filterEntries(snapshot?.entries ?? [], query, kind, favoritesOnly),
