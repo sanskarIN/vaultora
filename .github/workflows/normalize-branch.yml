@@ -1,0 +1,61 @@
+name: Normalize continuation branch
+
+on:
+  push:
+    branches:
+      - continue/2026-08-23-hardening
+    paths:
+      - .github/workflows/normalize-branch.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vaultora-normalize-continuation
+  cancel-in-progress: false
+
+jobs:
+  normalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout continuation branch
+        uses: actions/checkout@v4
+        with:
+          ref: continue/2026-08-23-hardening
+          fetch-depth: 0
+
+      - name: Use Node.js from .nvmrc
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package.json
+
+      - name: Install JavaScript dependencies and generate lockfile
+        run: npm install --ignore-scripts
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+
+      - name: Generate Cargo lockfile
+        run: cargo generate-lockfile --manifest-path src-tauri/Cargo.toml
+
+      - name: Normalize source formatting
+        run: npm run format
+
+      - name: Commit normalized files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Sanskar"
+          git config user.email "sanskarin@outlook.in"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No normalization changes were needed."
+            exit 0
+          fi
+          git commit -m "chore: normalize formatting and lock dependency graphs"
+          git push origin HEAD:continue/2026-08-23-hardening
