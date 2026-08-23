@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 pub const VAULT_DATA_VERSION: u32 = 1;
 pub const ENVELOPE_VERSION: u32 = 1;
+pub const MAX_PASSWORD_HISTORY: usize = 10;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -12,6 +13,12 @@ pub enum EntryKind {
     Login,
     SecureNote,
     Identity,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PasswordHistoryItem {
+    pub secret: String,
+    pub changed_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -26,6 +33,8 @@ pub struct VaultEntry {
     #[serde(default)]
     pub secret: String,
     #[serde(default)]
+    pub password_history: Vec<PasswordHistoryItem>,
+    #[serde(default)]
     pub notes: String,
     #[serde(default)]
     pub fields: BTreeMap<String, String>,
@@ -35,6 +44,30 @@ pub struct VaultEntry {
     pub favorite: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+impl VaultEntry {
+    pub fn record_password_change(&mut self, next_secret: &str, changed_at: DateTime<Utc>) {
+        if self.kind != EntryKind::Login || self.secret.is_empty() || self.secret == next_secret {
+            return;
+        }
+
+        if self
+            .password_history
+            .last()
+            .is_none_or(|item| item.secret != self.secret)
+        {
+            self.password_history.push(PasswordHistoryItem {
+                secret: self.secret.clone(),
+                changed_at,
+            });
+        }
+
+        if self.password_history.len() > MAX_PASSWORD_HISTORY {
+            let excess = self.password_history.len() - MAX_PASSWORD_HISTORY;
+            self.password_history.drain(0..excess);
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -262,6 +295,25 @@ mod tests {
         }
     }
 
+    fn entry(secret: &str) -> VaultEntry {
+        let now = Utc::now();
+        VaultEntry {
+            id: Uuid::new_v4(),
+            kind: EntryKind::Login,
+            name: "Example".into(),
+            username: String::new(),
+            url: String::new(),
+            secret: secret.into(),
+            password_history: Vec::new(),
+            notes: String::new(),
+            fields: BTreeMap::new(),
+            tags: Vec::new(),
+            favorite: false,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
     #[test]
     fn entry_input_normalizes_names_and_tags() {
         let normalized = input("  Example  ").validate_and_normalize().unwrap();
@@ -292,5 +344,28 @@ mod tests {
         let mut settings = VaultSettings::default();
         settings.reveal_seconds = 4;
         assert!(settings.validate().is_err());
+    }
+
+    #[test]
+    fn password_history_records_only_real_login_changes() {
+        let mut value = entry("first-secret");
+        let changed_at = Utc::now();
+        value.record_password_change("second-secret", changed_at);
+        assert_eq!(value.password_history.len(), 1);
+        assert_eq!(value.password_history[0].secret, "first-secret");
+        value.record_password_change("first-secret", changed_at);
+        assert_eq!(value.password_history.len(), 1);
+    }
+
+    #[test]
+    fn password_history_is_bounded_to_latest_items() {
+        let mut value = entry("secret-0");
+        for index in 1..=(MAX_PASSWORD_HISTORY + 3) {
+            let next = format!("secret-{index}");
+            value.record_password_change(&next, Utc::now());
+            value.secret = next;
+        }
+        assert_eq!(value.password_history.len(), MAX_PASSWORD_HISTORY);
+        assert_eq!(value.password_history.last().unwrap().secret, format!("secret-{}", MAX_PASSWORD_HISTORY + 2));
     }
 }
