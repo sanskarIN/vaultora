@@ -5,6 +5,7 @@ import type {
   PasswordOptions,
   PassphraseOptions,
   PasswordStrength,
+  SecurityAuditReport,
   SessionSnapshot,
   VaultEntry,
   VaultSettings,
@@ -61,6 +62,7 @@ export const api = {
     call<string>("generate_passphrase", { options }),
   analyzePassword: (secret: string) =>
     call<PasswordStrength>("analyze_password", { secret }),
+  securityAudit: () => call<SecurityAuditReport>("security_audit"),
   exportVault: (destination: string) => call<void>("export_vault", { destination }),
   importVault: (source: string, masterPassword: string) =>
     call<SessionSnapshot>("import_vault", { source, masterPassword }),
