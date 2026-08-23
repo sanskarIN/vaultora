@@ -6,6 +6,7 @@ import { AuthGate } from "./components/AuthGate";
 import { EntryDetails } from "./components/EntryDetails";
 import { EntryEditor } from "./components/EntryEditor";
 import { GeneratorPanel } from "./components/GeneratorPanel";
+import { SecurityAuditPanel } from "./components/SecurityAuditPanel";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { strings } from "./i18n/en";
 import type { AppScreen, EntryKind, EntrySummary, SessionSnapshot, VaultEntry } from "./types";
@@ -64,6 +65,16 @@ export default function App() {
     catch { setSelectedEntry(null); }
   }
 
+  async function openEntryFromAudit(entryId: string) {
+    const entry = snapshot?.entries.find((candidate) => candidate.id === entryId);
+    if (!entry) return;
+    setScreen("vault");
+    setQuery("");
+    setKind("all");
+    setFavoritesOnly(false);
+    await selectEntry(entry);
+  }
+
   async function saveEntry(input: Parameters<typeof api.upsertEntry>[0]) {
     const next = await api.upsertEntry(input);
     setSnapshot(next);
@@ -91,6 +102,7 @@ export default function App() {
         <div className="sidebar-brand"><img src="/vaultora-mark.svg" alt="" /><div><strong>{strings.appName}</strong><span>Encrypted local vault</span></div></div>
         <nav aria-label="Primary navigation">
           <NavButton active={screen === "vault"} onClick={() => setScreen("vault")} icon="▣">Vault</NavButton>
+          <NavButton active={screen === "audit"} onClick={() => setScreen("audit")} icon="◈">Security audit</NavButton>
           <NavButton active={screen === "generator"} onClick={() => setScreen("generator")} icon="✦">Generator</NavButton>
           <NavButton active={screen === "settings"} onClick={() => setScreen("settings")} icon="⚙">Settings</NavButton>
           <NavButton active={screen === "about"} onClick={() => setScreen("about")} icon="ⓘ">About</NavButton>
@@ -122,6 +134,7 @@ export default function App() {
             </div>
           </>
         )}
+        {screen === "audit" && <SecurityAuditPanel onOpenEntry={(entryId) => void openEntryFromAudit(entryId)} />}
         {screen === "generator" && <GeneratorPanel settings={snapshot.settings} />}
         {screen === "settings" && <SettingsPanel settings={snapshot.settings} onUpdated={setSnapshot} />}
         {screen === "about" && <AboutPanel />}
