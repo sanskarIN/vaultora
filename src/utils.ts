@@ -33,6 +33,16 @@ export function applyTheme(theme: ThemePreference): void {
   root.dataset.theme = theme;
 }
 
+export function shouldAutoLock(lastActivityAt: number, now: number, autoLockMinutes: number): boolean {
+  if (!Number.isFinite(lastActivityAt) || !Number.isFinite(now) || !Number.isFinite(autoLockMinutes)) {
+    return true;
+  }
+  if (autoLockMinutes <= 0 || now < lastActivityAt) {
+    return true;
+  }
+  return now - lastActivityAt >= autoLockMinutes * 60_000;
+}
+
 export function formatUpdatedAt(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Unknown";
