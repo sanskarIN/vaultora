@@ -20,8 +20,14 @@ export interface EntrySummary {
   updated_at: string;
 }
 
+export interface PasswordHistoryItem {
+  secret: string;
+  changed_at: string;
+}
+
 export interface VaultEntry extends EntrySummary {
   secret: string;
+  password_history: PasswordHistoryItem[];
   notes: string;
   fields: Record<string, string>;
   created_at: string;
