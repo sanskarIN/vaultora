@@ -13,6 +13,10 @@ const AAD: &[u8] = b"vaultora:v1:encrypted-vault";
 const DEFAULT_MEMORY_KIB: u32 = 65_536;
 const DEFAULT_ITERATIONS: u32 = 3;
 const DEFAULT_LANES: u32 = 1;
+const MIN_MEMORY_KIB: u32 = 8_192;
+const MAX_MEMORY_KIB: u32 = 262_144;
+const MAX_ITERATIONS: u32 = 10;
+const MAX_LANES: u32 = 8;
 
 #[derive(Debug)]
 pub struct DerivedVaultKey(pub Zeroizing<[u8; KEY_LEN]>);
@@ -30,12 +34,7 @@ pub fn new_salt() -> [u8; SALT_LEN] {
 }
 
 pub fn derive_key(password: &str, descriptor: &KdfDescriptor) -> Result<DerivedVaultKey> {
-    if descriptor.algorithm != "argon2id" {
-        return Err(VaultError::UnsupportedFormat(format!(
-            "unsupported KDF {}",
-            descriptor.algorithm
-        )));
-    }
+    validate_kdf_descriptor(descriptor)?;
     let salt = STANDARD_NO_PAD
         .decode(&descriptor.salt_b64)
         .map_err(|_| VaultError::UnsupportedFormat("invalid KDF salt".into()))?;
@@ -55,6 +54,28 @@ pub fn derive_key(password: &str, descriptor: &KdfDescriptor) -> Result<DerivedV
         .hash_password_into(password.as_bytes(), &salt, key.as_mut())
         .map_err(|_| VaultError::Crypto)?;
     Ok(DerivedVaultKey(key))
+}
+
+fn validate_kdf_descriptor(descriptor: &KdfDescriptor) -> Result<()> {
+    if descriptor.algorithm != "argon2id" {
+        return Err(VaultError::UnsupportedFormat(format!(
+            "unsupported KDF {}",
+            descriptor.algorithm
+        )));
+    }
+    if !(MIN_MEMORY_KIB..=MAX_MEMORY_KIB).contains(&descriptor.memory_kib) {
+        return Err(VaultError::UnsupportedFormat("Argon2 memory cost is outside supported safety bounds".into()));
+    }
+    if !(1..=MAX_ITERATIONS).contains(&descriptor.iterations) {
+        return Err(VaultError::UnsupportedFormat("Argon2 iteration count is outside supported safety bounds".into()));
+    }
+    if !(1..=MAX_LANES).contains(&descriptor.lanes) {
+        return Err(VaultError::UnsupportedFormat("Argon2 lane count is outside supported safety bounds".into()));
+    }
+    if descriptor.salt_b64.len() > 64 {
+        return Err(VaultError::UnsupportedFormat("invalid KDF salt".into()));
+    }
+    Ok(())
 }
 
 pub fn default_kdf_descriptor(salt: &[u8; SALT_LEN]) -> KdfDescriptor {
@@ -105,6 +126,9 @@ pub fn decrypt_data(envelope: &VaultEnvelope, password: &str) -> Result<(VaultDa
             envelope.cipher.algorithm
         )));
     }
+    if envelope.cipher.nonce_b64.len() > 64 {
+        return Err(VaultError::UnsupportedFormat("invalid nonce".into()));
+    }
     let nonce = STANDARD_NO_PAD
         .decode(&envelope.cipher.nonce_b64)
         .map_err(|_| VaultError::UnsupportedFormat("invalid nonce".into()))?;
@@ -135,6 +159,7 @@ pub fn decrypt_data(envelope: &VaultEnvelope, password: &str) -> Result<(VaultDa
             data.version
         )));
     }
+    data.validate_loaded()?;
     Ok((data, key))
 }
 
@@ -167,5 +192,23 @@ mod tests {
         let second = encrypt_data(&data, &key, kdf).unwrap();
         assert_ne!(first.cipher.nonce_b64, second.cipher.nonce_b64);
         assert_ne!(first.ciphertext_b64, second.ciphertext_b64);
+    }
+
+    #[test]
+    fn imported_kdf_parameters_are_bounded_before_argon2_runs() {
+        let salt = new_salt();
+        let mut kdf = default_kdf_descriptor(&salt);
+        kdf.memory_kib = MAX_MEMORY_KIB + 1;
+        assert!(matches!(
+            derive_key("correct horse battery staple", &kdf),
+            Err(VaultError::UnsupportedFormat(_))
+        ));
+
+        let mut kdf = default_kdf_descriptor(&salt);
+        kdf.iterations = MAX_ITERATIONS + 1;
+        assert!(matches!(
+            derive_key("correct horse battery staple", &kdf),
+            Err(VaultError::UnsupportedFormat(_))
+        ));
     }
 }
