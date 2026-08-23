@@ -1,5 +1,6 @@
 export type EntryKind = "login" | "secure_note" | "identity";
 export type ThemePreference = "system" | "light" | "dark";
+export type AuditSeverity = "info" | "low" | "medium" | "high" | "critical";
 
 export interface VaultSettings {
   auto_lock_minutes: number;
@@ -71,4 +72,23 @@ export interface PasswordStrength {
   suggestions: string[];
 }
 
-export type AppScreen = "vault" | "generator" | "settings" | "about";
+export interface SecurityAuditFinding {
+  code: string;
+  severity: AuditSeverity;
+  entry_id: string;
+  entry_name: string;
+  message: string;
+}
+
+export interface SecurityAuditReport {
+  total_entries: number;
+  login_entries: number;
+  findings: SecurityAuditFinding[];
+  critical_count: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+  healthy_login_count: number;
+}
+
+export type AppScreen = "vault" | "audit" | "generator" | "settings" | "about";
