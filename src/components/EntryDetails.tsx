@@ -12,8 +12,17 @@ interface Props {
 
 export function EntryDetails({ entry, settings, onEdit, onDelete }: Props) {
   const [revealed, setRevealed] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [revealedHistory, setRevealedHistory] = useState<number | null>(null);
   const [status, setStatus] = useState("");
   const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    setRevealed(false);
+    setHistoryOpen(false);
+    setRevealedHistory(null);
+    setStatus("");
+  }, [entry.id]);
 
   useEffect(() => {
     if (!revealed) return;
@@ -21,8 +30,14 @@ export function EntryDetails({ entry, settings, onEdit, onDelete }: Props) {
     return () => window.clearTimeout(timer);
   }, [revealed, settings.reveal_seconds, entry.id]);
 
-  async function copySecret() {
-    await copyWithAutoClear(entry.secret, settings.clipboard_clear_seconds);
+  useEffect(() => {
+    if (revealedHistory === null) return;
+    const timer = window.setTimeout(() => setRevealedHistory(null), settings.reveal_seconds * 1000);
+    return () => window.clearTimeout(timer);
+  }, [revealedHistory, settings.reveal_seconds, entry.id]);
+
+  async function copySecret(secret = entry.secret) {
+    await copyWithAutoClear(secret, settings.clipboard_clear_seconds);
     setStatus(`Copied. Clipboard will clear in ${settings.clipboard_clear_seconds} seconds.`);
   }
 
@@ -59,9 +74,42 @@ export function EntryDetails({ entry, settings, onEdit, onDelete }: Props) {
         </div>
         <div className="row">
           <button className="button ghost" onClick={() => setRevealed((value) => !value)}>{revealed ? "Hide" : "Reveal"}</button>
-          <button className="button primary" onClick={copySecret} disabled={!entry.secret}>Copy</button>
+          <button className="button primary" onClick={() => void copySecret()} disabled={!entry.secret}>Copy</button>
         </div>
       </div>
+      {entry.kind === "login" && entry.password_history.length > 0 && (
+        <section className="password-history" aria-labelledby="password-history-title">
+          <div className="password-history-heading">
+            <div>
+              <span className="detail-label">Password history</span>
+              <strong id="password-history-title">{entry.password_history.length} previous password{entry.password_history.length === 1 ? "" : "s"}</strong>
+            </div>
+            <button className="button ghost" onClick={() => { setHistoryOpen((value) => !value); setRevealedHistory(null); }} aria-expanded={historyOpen}>
+              {historyOpen ? "Hide history" : "Review history"}
+            </button>
+          </div>
+          {historyOpen && (
+            <div className="password-history-list">
+              {[...entry.password_history].reverse().map((item, displayIndex) => {
+                const sourceIndex = entry.password_history.length - 1 - displayIndex;
+                const itemRevealed = revealedHistory === sourceIndex;
+                return (
+                  <div className="password-history-item" key={`${item.changed_at}:${sourceIndex}`}>
+                    <div>
+                      <span className="muted">Changed {formatUpdatedAt(item.changed_at)}</span>
+                      <code>{itemRevealed ? item.secret : "••••••••••••"}</code>
+                    </div>
+                    <div className="row">
+                      <button className="button ghost" onClick={() => setRevealedHistory(itemRevealed ? null : sourceIndex)}>{itemRevealed ? "Hide" : "Reveal"}</button>
+                      <button className="button ghost" onClick={() => void copySecret(item.secret)}>Copy</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
       {Object.entries(entry.fields).filter(([, value]) => value).map(([key, value]) => (
         <DetailRow key={key} label={key.replaceAll("_", " ")} value={value} />
       ))}
