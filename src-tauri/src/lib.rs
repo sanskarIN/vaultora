@@ -6,6 +6,7 @@ pub mod generator;
 pub mod model;
 pub mod storage;
 mod state;
+mod validation;
 
 use state::AppState;
 use tauri::{Manager, Runtime};
