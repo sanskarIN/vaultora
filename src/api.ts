@@ -62,8 +62,11 @@ export const api = {
   analyzePassword: (secret: string) =>
     call<PasswordStrength>("analyze_password", { secret }),
   exportVault: (destination: string) => call<void>("export_vault", { destination }),
+  exportVaultBase64: () => call<string>("export_vault_base64"),
   importVault: (source: string, masterPassword: string) =>
     call<SessionSnapshot>("import_vault", { source, masterPassword }),
+  importVaultBase64: (payload: string, masterPassword: string) =>
+    call<SessionSnapshot>("import_vault_base64", { payload, masterPassword }),
   changeMasterPassword: (currentPassword: string, newPassword: string) =>
     call<void>("change_master_password", { currentPassword, newPassword }),
 };
