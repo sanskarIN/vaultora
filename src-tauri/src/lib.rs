@@ -1,5 +1,4 @@
 pub mod browser;
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub mod browser_bridge;
 pub mod browser_protocol;
 mod commands;
