@@ -59,7 +59,7 @@ impl BrowserBridge {
 
         let shutdown = Arc::new(AtomicBool::new(false));
         let thread_shutdown = Arc::clone(&shutdown);
-        let thread = thread::Builder::new()
+        let thread = match thread::Builder::new()
             .name("vaultora-browser-bridge".into())
             .spawn(move || {
                 while !thread_shutdown.load(Ordering::Relaxed) {
@@ -73,8 +73,13 @@ impl BrowserBridge {
                         Err(_) => thread::sleep(Duration::from_millis(50)),
                     }
                 }
-            })
-            .map_err(|error| VaultError::Storage(error.to_string()))?;
+            }) {
+            Ok(thread) => thread,
+            Err(error) => {
+                let _ = fs::remove_file(&metadata_path);
+                return Err(VaultError::Storage(error.to_string()));
+            }
+        };
 
         Ok(Self {
             shutdown,
@@ -103,13 +108,23 @@ fn generate_token() -> String {
 fn write_metadata(path: &Path, metadata: &BrowserBridgeMetadata) -> Result<()> {
     let bytes = serde_json::to_vec(metadata)?;
     let temp = path.with_extension("json.tmp");
+    if temp.exists() {
+        fs::remove_file(&temp)?;
+    }
     {
         let mut file = fs::File::create(&temp)?;
         file.write_all(&bytes)?;
         file.sync_all()?;
     }
     restrict_permissions(&temp)?;
-    fs::rename(&temp, path)?;
+
+    if path.exists() {
+        fs::remove_file(path)?;
+    }
+    if let Err(error) = fs::rename(&temp, path) {
+        let _ = fs::remove_file(&temp);
+        return Err(error.into());
+    }
     restrict_permissions(path)?;
     Ok(())
 }
@@ -205,6 +220,21 @@ mod tests {
         };
         let bytes = serde_json::to_vec(&metadata).unwrap();
         let parsed: BrowserBridgeMetadata = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(parsed, metadata);
+    }
+
+    #[test]
+    fn metadata_replaces_stale_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(BRIDGE_METADATA_FILE);
+        fs::write(&path, b"stale").unwrap();
+        let metadata = BrowserBridgeMetadata {
+            version: BROWSER_PROTOCOL_VERSION,
+            port: 41873,
+            token: "fresh-token".into(),
+        };
+        write_metadata(&path, &metadata).unwrap();
+        let parsed: BrowserBridgeMetadata = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
         assert_eq!(parsed, metadata);
     }
 }
