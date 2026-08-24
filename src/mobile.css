@@ -1,0 +1,92 @@
+html,
+body,
+#root {
+  min-height: 100dvh;
+}
+
+body {
+  overscroll-behavior: none;
+}
+
+@supports (padding: max(0px)) {
+  .auth-shell,
+  .loading-screen {
+    padding-top: max(1.5rem, env(safe-area-inset-top));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+  }
+}
+
+@media (max-width: 680px) {
+  .app-shell {
+    min-height: 100dvh;
+  }
+
+  .sidebar {
+    padding-right: max(0.45rem, env(safe-area-inset-right));
+    padding-bottom: max(0.45rem, env(safe-area-inset-bottom));
+    padding-left: max(0.45rem, env(safe-area-inset-left));
+  }
+
+  .workspace {
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: calc(5.3rem + env(safe-area-inset-bottom));
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+
+  .modal-backdrop {
+    align-items: end;
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-right: max(0.5rem, env(safe-area-inset-right));
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+  }
+
+  .modal {
+    width: 100%;
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 1rem);
+    border-radius: 22px 22px 12px 12px;
+  }
+
+  .button,
+  .icon-button,
+  .nav-button,
+  .entry-card,
+  .field input,
+  .field select,
+  .toolbar input,
+  .toolbar select,
+  .search-field input {
+    min-height: 48px;
+  }
+
+  .field input,
+  .field select,
+  .field textarea,
+  .toolbar input,
+  .toolbar select,
+  .search-field input {
+    font-size: 16px;
+  }
+
+  .entry-list {
+    max-height: min(45dvh, 420px);
+    overscroll-behavior: contain;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .button:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .entry-card:hover {
+    background: transparent;
+  }
+
+  .entry-card.selected:hover {
+    background: var(--primary-soft);
+  }
+}
