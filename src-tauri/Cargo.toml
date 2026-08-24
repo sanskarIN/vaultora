@@ -1,6 +1,6 @@
 [package]
 name = "vaultora"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local-first encrypted password manager"
 authors = ["Sanskar <sanskarin@outlook.in>"]
 edition = "2021"
