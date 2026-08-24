@@ -29,8 +29,8 @@ pub fn run() -> io::Result<()> {
             Err(_) => BrowserResponse::Error {
                 version: BROWSER_PROTOCOL_VERSION,
                 request_id: String::new(),
-                code: "invalid_json",
-                message: "Native message is not a valid Vaultora request.",
+                code: "invalid_json".into(),
+                message: "Native message is not a valid Vaultora request.".into(),
             },
         };
         write_native_message(&mut writer, &response)?;
@@ -45,8 +45,8 @@ fn forward_or_error(request: BrowserRequest) -> BrowserResponse {
         Err(_) => BrowserResponse::Error {
             version: BROWSER_PROTOCOL_VERSION,
             request_id,
-            code: "bridge_offline",
-            message: "Vaultora desktop bridge is unavailable.",
+            code: "bridge_offline".into(),
+            message: "Vaultora desktop bridge is unavailable.".into(),
         },
     }
 }
