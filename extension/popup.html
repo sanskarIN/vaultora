@@ -25,14 +25,36 @@
             <p id="status-detail">Vault data is never stored by this extension.</p>
           </div>
         </div>
-        <button id="reconnect" type="button">Reconnect</button>
+        <button id="reconnect" class="secondary-button" type="button">Reconnect</button>
       </section>
+
+      <section class="site-card" aria-labelledby="site-heading">
+        <p class="eyebrow">Current HTTPS site</p>
+        <strong id="site-heading">Checking active tab…</strong>
+        <p id="site-detail">Only exact HTTPS-origin matches can be filled.</p>
+      </section>
+
+      <section class="matches-card" aria-labelledby="matches-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Matched logins</p>
+            <strong id="matches-heading">Choose a login to fill</strong>
+          </div>
+          <button id="refresh" class="text-button" type="button">Refresh</button>
+        </div>
+        <div id="matches" class="matches-list" aria-live="polite">
+          <p class="empty-message">Checking for saved logins…</p>
+        </div>
+      </section>
+
+      <p id="action-status" class="action-status" role="status"></p>
 
       <section class="security-note">
         <strong>Security model</strong>
         <p>
-          The extension requests data only from the local Vaultora native bridge and keeps no vault
-          secrets in browser storage.
+          Vaultora requests a secret only after you choose a login. The active HTTPS origin is
+          checked again before the credential is filled, and no vault secret is stored in browser
+          storage.
         </p>
       </section>
     </main>
