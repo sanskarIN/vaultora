@@ -18,12 +18,13 @@
     "android:studio": "tauri android dev --open",
     "android:build:apk": "tauri android build --apk --split-per-abi",
     "android:build:aab": "tauri android build --aab",
+    "android:check": "node scripts/check-android.mjs",
     "extension:build": "node scripts/build-extension.mjs",
     "extension:check": "node scripts/check-extension.mjs",
     "lint": "npm run typecheck && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings",
     "format:check": "prettier --check . && cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check",
     "format": "prettier --write . && cargo fmt --manifest-path src-tauri/Cargo.toml --all",
-    "check": "npm run typecheck && npm test && npm run extension:check && cargo test --manifest-path src-tauri/Cargo.toml"
+    "check": "npm run typecheck && npm test && npm run android:check && npm run extension:check && cargo test --manifest-path src-tauri/Cargo.toml"
   },
   "dependencies": {
     "@tauri-apps/api": "2.11.1",
