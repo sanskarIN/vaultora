@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Vaultora</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup-shell">
+      <header class="brand-row">
+        <div class="brand-mark" aria-hidden="true">V</div>
+        <div>
+          <p class="eyebrow">Vaultora</p>
+          <h1>Browser companion</h1>
+        </div>
+      </header>
+
+      <section class="status-card" aria-live="polite">
+        <div class="status-row">
+          <span id="status-dot" class="status-dot" aria-hidden="true"></span>
+          <div>
+            <strong id="status-title">Checking desktop bridge…</strong>
+            <p id="status-detail">Vault data is never stored by this extension.</p>
+          </div>
+        </div>
+        <button id="reconnect" type="button">Reconnect</button>
+      </section>
+
+      <section class="security-note">
+        <strong>Security model</strong>
+        <p>
+          The extension requests data only from the local Vaultora native bridge and keeps no vault
+          secrets in browser storage.
+        </p>
+      </section>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
