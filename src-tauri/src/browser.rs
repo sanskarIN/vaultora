@@ -1,5 +1,5 @@
 use crate::model::{EntryKind, VaultEntry};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use url::Url;
 use uuid::Uuid;
 
@@ -44,7 +44,7 @@ impl BrowserOrigin {
     }
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BrowserMatch {
     pub id: Uuid,
     pub name: String,
@@ -53,7 +53,7 @@ pub struct BrowserMatch {
     pub favorite: bool,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BrowserCredential {
     pub id: Uuid,
     pub username: String,
