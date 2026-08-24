@@ -5,16 +5,32 @@ use crate::browser_protocol::{
 };
 use serde::Serialize;
 use std::env;
+use std::ffi::OsStr;
 use std::fs;
 use std::io::{self, Read, Write};
 use std::net::{Ipv4Addr, Shutdown, SocketAddr, SocketAddrV4, TcpStream};
 use std::path::PathBuf;
 use std::time::Duration;
 
+pub const FIREFOX_EXTENSION_ID: &str = "vaultora@sanskar.in";
+
 #[derive(Serialize)]
 struct BridgeFrame<'a> {
     token: &'a str,
     request: &'a BrowserRequest,
+}
+
+pub fn is_native_host_invocation<I, S>(args: I) -> bool
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    args.into_iter().any(|value| {
+        let value = value.as_ref().to_string_lossy();
+        value == FIREFOX_EXTENSION_ID
+            || value.starts_with("chrome-extension://")
+            || value.starts_with("moz-extension://")
+    })
 }
 
 pub fn run() -> io::Result<()> {
@@ -176,6 +192,13 @@ fn write_native_message<W: Write, T: Serialize>(writer: &mut W, value: &T) -> io
 mod tests {
     use super::*;
     use std::io::Cursor;
+
+    #[test]
+    fn detects_chromium_and_firefox_native_host_launches() {
+        assert!(is_native_host_invocation(["chrome-extension://abc123/"]));
+        assert!(is_native_host_invocation(["manifest.json", FIREFOX_EXTENSION_ID]));
+        assert!(!is_native_host_invocation(["--some-normal-app-argument"]));
+    }
 
     #[test]
     fn native_framing_round_trips_payload() {
