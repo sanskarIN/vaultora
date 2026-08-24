@@ -46,17 +46,17 @@ pub enum BrowserResponse {
     Error {
         version: u32,
         request_id: String,
-        code: &'static str,
-        message: &'static str,
+        code: String,
+        message: String,
     },
 }
 
-fn error(request_id: String, code: &'static str, message: &'static str) -> BrowserResponse {
+fn error(request_id: String, code: &str, message: &str) -> BrowserResponse {
     BrowserResponse::Error {
         version: BROWSER_PROTOCOL_VERSION,
         request_id,
-        code,
-        message,
+        code: code.into(),
+        message: message.into(),
     }
 }
 
@@ -193,25 +193,19 @@ mod tests {
     fn rejects_wrong_protocol_version() {
         let mut value = request("get-status");
         value.version = 1;
-        assert!(matches!(
-            handle_browser_request(value, None),
-            BrowserResponse::Error {
-                code: "unsupported_version",
-                ..
-            }
-        ));
+        match handle_browser_request(value, None) {
+            BrowserResponse::Error { code, .. } => assert_eq!(code, "unsupported_version"),
+            other => panic!("unexpected response: {other:?}"),
+        }
     }
 
     #[test]
     fn rejects_unknown_clients() {
         let mut value = request("hello");
         value.client = "other-extension".into();
-        assert!(matches!(
-            handle_browser_request(value, None),
-            BrowserResponse::Error {
-                code: "invalid_client",
-                ..
-            }
-        ));
+        match handle_browser_request(value, None) {
+            BrowserResponse::Error { code, .. } => assert_eq!(code, "invalid_client"),
+            other => panic!("unexpected response: {other:?}"),
+        }
     }
 }
