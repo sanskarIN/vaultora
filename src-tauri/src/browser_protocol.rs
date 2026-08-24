@@ -7,7 +7,7 @@ pub const BROWSER_PROTOCOL_VERSION: u32 = 2;
 pub const MAX_NATIVE_MESSAGE_BYTES: usize = 64 * 1024;
 pub const MAX_NATIVE_RESPONSE_BYTES: usize = 256 * 1024;
 
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BrowserRequest {
     pub version: u32,
     #[serde(rename = "type")]
@@ -22,7 +22,7 @@ pub struct BrowserRequest {
     pub entry_id: Option<Uuid>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum BrowserResponse {
     VaultStatus {
