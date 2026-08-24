@@ -1,0 +1,76 @@
+name: Bug report
+description: Report a reproducible Vaultora problem that is not a security vulnerability.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Vaultora. Do not include passwords, real vault files, private keys, tokens, or suspected security vulnerabilities in a public issue. Follow SECURITY.md for security reports.
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Android
+        - Windows
+        - macOS
+        - Linux
+        - Chromium browser extension foundation
+        - Firefox browser extension foundation
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Vaultora version or commit
+      placeholder: 0.1.0 or commit SHA
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem
+      description: Describe what happened using synthetic or non-sensitive data.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Open ...
+        2. Create a test entry ...
+        3. Tap ...
+        4. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Non-sensitive logs or diagnostics
+      description: Remove secrets, local paths that reveal private information, credentials, and vault payloads before posting.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety checks
+      options:
+        - label: I used only synthetic/test vault data in this report.
+          required: true
+        - label: This report does not disclose a suspected security vulnerability.
+          required: true
