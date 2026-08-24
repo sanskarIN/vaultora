@@ -1,6 +1,6 @@
 # Vaultora
 
-Vaultora is an open-source, local-first encrypted password manager built with React, TypeScript, Rust, and Tauri 2. The desktop and Android applications share the same Rust vault core, and the repository now includes a least-privilege Manifest V3 browser-companion foundation.
+Vaultora is an open-source, local-first encrypted password manager built with React, TypeScript, Rust, and Tauri 2. Vaultora 0.2.0 supports desktop and Android vault workflows plus an explicit, exact-origin browser autofill companion for Chromium-family browsers and Firefox.
 
 > Vaultora does not require an account or cloud service. The active vault is stored locally as authenticated ciphertext.
 
@@ -10,7 +10,8 @@ Vaultora is an open-source, local-first encrypted password manager built with Re
 - Windows.
 - macOS.
 - Linux.
-- Browser companion foundation for Chromium-family browsers and Firefox.
+- Chromium-family browser companion.
+- Firefox browser companion.
 
 ## Core security design
 
@@ -24,7 +25,12 @@ Vaultora is an open-source, local-first encrypted password manager built with Re
 - Encrypted backup import/export on desktop and Android.
 - Android Storage Access Framework `content://` support without plaintext backup serialization in the UI.
 - Least-privilege Tauri capabilities split by desktop and mobile platform.
+- One authoritative desktop GUI instance to reduce concurrent-vault-write risk.
 - Browser extension with no persistent host permissions and no browser-storage secret cache.
+- Browser credential matching restricted to exact HTTPS origins.
+- User-selected fill: no password is requested until the user chooses a matched login.
+- Active tab/origin is checked before credential retrieval and again before injection.
+- Native messaging is bounded, versioned, and relayed through an authenticated loopback-only desktop bridge.
 
 Read [SECURITY.md](SECURITY.md) and [THREAT_MODEL.md](THREAT_MODEL.md) before relying on Vaultora for high-value secrets.
 
@@ -33,15 +39,15 @@ Read [SECURITY.md](SECURITY.md) and [THREAT_MODEL.md](THREAT_MODEL.md) before re
 ```text
 vaultora/
 ├── .github/workflows/          # CI and repository automation
-├── docs/                       # Android and browser-extension guides
-├── extension/                  # Manifest V3 browser companion foundation
+├── docs/                       # Android, browser, and release guides
+├── extension/                  # Manifest V3 browser companion source
 │   └── native-host/            # Native messaging manifest templates
 ├── public/                     # Static frontend assets
-├── scripts/                    # Android/extension validation and build helpers
+├── scripts/                    # Build, validation, and native-host registration helpers
 ├── src/                        # React/TypeScript frontend
 ├── src-tauri/
 │   ├── capabilities/           # Desktop and mobile Tauri permissions
-│   ├── src/                    # Rust encryption, storage, commands, models
+│   ├── src/                    # Rust vault, browser bridge, storage, commands, models
 │   ├── tauri.android.conf.json # Android-specific configuration
 │   └── tauri.conf.json         # Shared/desktop Tauri configuration
 ├── SECURITY.md
@@ -124,21 +130,55 @@ Build a Play Store AAB:
 npm run android:build:aab
 ```
 
-## Browser extension foundation
+## Browser extension
 
-Validate its permission/security policy:
+Validate extension security and protocol rules:
 
 ```bash
 npm run extension:check
+npm run native-host:check
 ```
 
-Stage an unpacked build:
+Stage browser-specific unpacked builds:
 
 ```bash
 npm run extension:build
 ```
 
-The generated output is written to `dist-extension/`. See [docs/BROWSER_EXTENSION.md](docs/BROWSER_EXTENSION.md) for loading instructions and the native-messaging security boundary.
+Outputs:
+
+```text
+dist-extension/chromium/
+dist-extension/firefox/
+```
+
+Chromium-family browsers use the service-worker bundle. Firefox uses the module background-script bundle with the stable add-on ID `vaultora@sanskar.in`.
+
+### Register the native host
+
+Build/install Vaultora first, then register the installed Vaultora desktop executable as the user-level native messaging host.
+
+Firefox:
+
+```bash
+npm run native-host:install -- --browser=firefox --executable=/absolute/path/to/Vaultora
+```
+
+Chrome/Chromium/Edge require the exact installed extension ID:
+
+```bash
+npm run native-host:install -- --browser=chrome --executable=/absolute/path/to/Vaultora --extension-id=abcdefghijklmnopabcdefghijklmnop
+```
+
+Replace the sample extension ID with the real 32-character ID shown by your Chromium-family browser. Use `--browser=chromium` or `--browser=edge` for those browsers.
+
+Remove a registration with:
+
+```bash
+npm run native-host:uninstall -- --browser=chrome
+```
+
+See [docs/BROWSER_EXTENSION.md](docs/BROWSER_EXTENSION.md) for OS-specific behavior and security details.
 
 ## Quality checks
 
@@ -151,16 +191,20 @@ npm run check
 Individual checks:
 
 ```bash
+npm run version:check
 npm run typecheck
 npm test
+npm run build
 npm run android:check
 npm run extension:check
+npm run native-host:check
+npm run extension:build
 cargo test --manifest-path src-tauri/Cargo.toml
 npm run lint
 npm run format:check
 ```
 
-GitHub Actions also runs frontend tests, Android readiness checks, extension policy/protocol checks, Rust tests, Rust formatting, and Clippy. It stages the browser extension as a CI artifact.
+GitHub Actions runs the core quality gate on Linux and separately compiles all Rust targets on Linux, Windows, and macOS so desktop-only bridge and single-instance code is checked across supported desktop platforms.
 
 ## Encrypted backups
 
@@ -168,19 +212,28 @@ Desktop and Android use the same `.vaultora` encrypted envelope. On Android, the
 
 Backups remain protected by the master password in effect when they were exported. Treat encrypted backups as sensitive because possession of a backup permits offline password-guessing attempts.
 
-## Browser companion status
+## Browser companion security model
 
-The checked-in extension is a secure foundation, not a completed autofill release. It currently provides:
+Vaultora 0.2.0 implements explicit login filling without granting persistent access to every website.
 
-- Manifest V3 packaging.
-- Chromium and Firefox runtime compatibility in the popup/service worker.
-- Native messaging connection preparation.
-- Versioned protocol validation.
-- Local bridge status UI.
-- Chromium and Firefox native-host manifest templates.
-- Automated enforcement against broad host permissions and browser secret storage.
+1. The extension popup uses temporary `activeTab` access after the user opens it.
+2. Only an HTTPS origin is accepted.
+3. The Rust vault core returns login summaries only when their saved URL has the same exact scheme, host, and effective port.
+4. The popup displays those summaries but receives no password.
+5. A password is requested only after the user presses **Fill** for one login.
+6. The extension checks the active tab and origin before requesting the selected credential.
+7. Rust verifies the selected entry ID and origin against the currently unlocked in-memory session.
+8. The extension checks the active tab and origin again before one-shot script injection.
+9. The injected function fills an eligible current-password field and an associated username field when available.
+10. The extension does not automatically submit the form and does not persist credentials in browser storage.
 
-Credential autofill is intentionally deferred until the native host, origin matching, consent behavior, and security tests can ship together.
+Vaultora deliberately refuses HTTP pages, subdomain inheritance, wildcard origins, credential requests while locked, and pages that expose only `new-password` fields.
+
+## Native messaging architecture
+
+The browser launches the installed Vaultora executable in native-host mode. That process handles length-prefixed native-messaging JSON and relays bounded requests to the already-running desktop app over `127.0.0.1` only.
+
+The GUI app creates a fresh random bridge token and ephemeral port on every start and stores the metadata in the app-data directory. On Unix the metadata file is restricted to the current user. The native host must authenticate each local relay request with that token. Locking Vaultora immediately removes access to credential data because browser requests use the shared in-memory session state.
 
 ## License
 
