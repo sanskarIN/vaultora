@@ -1,5 +1,10 @@
+import {
+  VAULTORA_NATIVE_HOST,
+  createHelloMessage,
+  isVaultStatusMessage,
+} from "./protocol.js";
+
 const browserRuntime = globalThis.browser?.runtime ?? globalThis.chrome?.runtime;
-const NATIVE_HOST = "in.sanskar.vaultora.bridge";
 
 let nativePort = null;
 let bridgeState = {
@@ -32,31 +37,34 @@ function connectNativeBridge() {
   disconnectPort();
 
   try {
-    nativePort = browserRuntime.connectNative(NATIVE_HOST);
+    nativePort = browserRuntime.connectNative(VAULTORA_NATIVE_HOST);
     publishState({ connected: true, error: null });
 
     nativePort.onMessage.addListener((message) => {
-      if (!message || typeof message !== "object") return;
-      if (message.type === "vault-status") {
+      if (!isVaultStatusMessage(message)) {
         publishState({
           connected: true,
-          unlocked: message.unlocked === true,
-          error: null,
+          unlocked: false,
+          error: "Vaultora native bridge returned an unsupported protocol message.",
         });
+        return;
       }
+
+      publishState({
+        connected: true,
+        unlocked: message.unlocked,
+        error: null,
+      });
     });
 
     nativePort.onDisconnect.addListener(() => {
-      const message = browserRuntime.lastError?.message ?? "Vaultora desktop bridge is not connected.";
+      const message =
+        browserRuntime.lastError?.message ?? "Vaultora desktop bridge is not connected.";
       nativePort = null;
       publishState({ connected: false, unlocked: false, error: message });
     });
 
-    nativePort.postMessage({
-      version: 1,
-      type: "hello",
-      client: "vaultora-browser-extension",
-    });
+    nativePort.postMessage(createHelloMessage());
   } catch (error) {
     nativePort = null;
     publishState({
