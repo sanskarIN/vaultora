@@ -1,8 +1,13 @@
+pub mod browser;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+pub mod browser_bridge;
+pub mod browser_protocol;
 mod commands;
 pub mod crypto;
 pub mod error;
 pub mod generator;
 pub mod model;
+pub mod native_host;
 pub mod storage;
 mod state;
 
@@ -11,8 +16,8 @@ use tauri::{Manager, Runtime};
 
 fn build_state<R: Runtime>(app: &tauri::AppHandle<R>) -> Result<AppState, Box<dyn std::error::Error>> {
     let app_data_dir = app.path().app_data_dir()?;
-    let storage = storage::VaultStorage::new(app_data_dir)?;
-    Ok(AppState::new(storage))
+    let storage = storage::VaultStorage::new(app_data_dir.clone())?;
+    Ok(AppState::new(storage, app_data_dir)?)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
