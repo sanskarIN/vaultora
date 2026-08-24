@@ -29,8 +29,8 @@ Firefox uses the fixed extension id vaultora@sanskar.in. Chromium-family browser
 
 async function requireExecutable(value) {
   if (!value) throw new Error("--executable is required for installation.");
+  if (!isAbsolute(value)) throw new Error("Native host executable path must be absolute.");
   const path = resolve(value);
-  if (!isAbsolute(path)) throw new Error("Native host executable path must be absolute.");
   await access(path, constants.F_OK | constants.X_OK);
   return path;
 }
