@@ -1,4 +1,6 @@
-use crate::browser::{credential_for_origin, matching_logins, BrowserCredential, BrowserMatch};
+use crate::browser::{
+    credential_for_origin, matching_logins, BrowserCredential, BrowserMatch, BrowserOrigin,
+};
 use crate::state::VaultSession;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -106,15 +108,18 @@ pub fn handle_browser_request(
                     "Unlock Vaultora before requesting site matches.",
                 );
             };
+            let Some(origin) = BrowserOrigin::parse(&request.origin) else {
+                return error(
+                    request.request_id,
+                    "invalid_origin",
+                    "Vaultora only matches credentials for valid HTTPS origins.",
+                );
+            };
             let matches = matching_logins(&session.data.entries, &request.origin);
-            let origin = matches
-                .first()
-                .map(|entry| entry.origin.clone())
-                .unwrap_or_default();
             BrowserResponse::Matches {
                 version: BROWSER_PROTOCOL_VERSION,
                 request_id: request.request_id,
-                origin,
+                origin: origin.as_string(),
                 matches,
             }
         }
