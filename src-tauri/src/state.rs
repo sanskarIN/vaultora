@@ -16,7 +16,7 @@ pub struct AppState {
     pub storage: VaultStorage,
     pub session: Arc<Mutex<Option<VaultSession>>>,
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
-    pub browser_bridge: BrowserBridge,
+    pub _browser_bridge: BrowserBridge,
 }
 
 impl AppState {
@@ -33,7 +33,7 @@ impl AppState {
             storage,
             session,
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
-            browser_bridge,
+            _browser_bridge: browser_bridge,
         })
     }
 }
