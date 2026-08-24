@@ -137,8 +137,8 @@ fn handle_connection(
         BrowserResponse::Error {
             version: BROWSER_PROTOCOL_VERSION,
             request_id,
-            code: "unauthorized",
-            message: "Browser bridge authentication failed.",
+            code: "unauthorized".into(),
+            message: "Browser bridge authentication failed.".into(),
         }
     } else {
         match session.lock() {
@@ -146,8 +146,8 @@ fn handle_connection(
             Err(_) => BrowserResponse::Error {
                 version: BROWSER_PROTOCOL_VERSION,
                 request_id,
-                code: "internal",
-                message: "Vault session state is unavailable.",
+                code: "internal".into(),
+                message: "Vault session state is unavailable.".into(),
             },
         }
     };
