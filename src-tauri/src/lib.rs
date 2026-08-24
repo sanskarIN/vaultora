@@ -20,6 +20,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .setup(|app| {
             let state = build_state(&app.handle())?;
             app.manage(state);
@@ -39,7 +40,9 @@ pub fn run() {
             commands::generate_passphrase,
             commands::analyze_password,
             commands::export_vault,
+            commands::export_vault_base64,
             commands::import_vault,
+            commands::import_vault_base64,
             commands::change_master_password,
         ])
         .run(tauri::generate_context!())
