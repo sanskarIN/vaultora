@@ -3,8 +3,9 @@
   "name": "Vaultora",
   "version": "0.1.0",
   "description": "Secure browser companion for the local-first Vaultora password manager.",
-  "permissions": ["activeTab", "nativeMessaging"],
+  "permissions": ["activeTab", "nativeMessaging", "scripting"],
   "background": {
+    "scripts": ["background.js"],
     "service_worker": "background.js",
     "type": "module"
   },
