@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Frontend, core, Android and extension checks
+    name: Frontend, core, Android and browser checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -50,11 +50,17 @@ jobs:
       - name: Install JavaScript dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Release version consistency
+        run: npm run version:check
+
       - name: Typecheck
         run: npm run typecheck
 
       - name: Frontend tests
         run: npm test
+
+      - name: Frontend production build
+        run: npm run build
 
       - name: Android readiness checks
         run: npm run android:check
@@ -62,7 +68,10 @@ jobs:
       - name: Browser extension security checks
         run: npm run extension:check
 
-      - name: Stage browser extension
+      - name: Native host security checks
+        run: npm run native-host:check
+
+      - name: Stage browser extensions
         run: npm run extension:build
 
       - name: Rust tests
@@ -74,10 +83,44 @@ jobs:
       - name: Rust lint
         run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
 
-      - name: Upload staged extension
+      - name: Upload staged extensions
         uses: actions/upload-artifact@v4
         with:
-          name: vaultora-browser-extension
+          name: vaultora-browser-extensions
           path: dist-extension/
           if-no-files-found: error
           retention-days: 14
+
+  desktop-rust:
+    name: Desktop Rust compile (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Tauri Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            wget
+
+      - name: Compile all Rust targets
+        run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets --all-features
