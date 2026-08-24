@@ -2,7 +2,7 @@ export function AboutPanel() {
   return (
     <section className="content-card about-card">
       <img src="/vaultora-mark.svg" className="brand-mark" alt="" />
-      <p className="eyebrow">Vaultora 0.1.0</p>
+      <p className="eyebrow">Vaultora 0.2.0</p>
       <h2>Private by architecture, useful by default.</h2>
       <p>
         Vaultora is an open-source, local-first password manager for Android, Windows, macOS, and
