@@ -11,5 +11,10 @@
   "action": {
     "default_title": "Vaultora",
     "default_popup": "popup.html"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "vaultora@sanskar.in"
+    }
   }
 }
