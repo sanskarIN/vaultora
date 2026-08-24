@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Vaultora",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Secure browser companion for the local-first Vaultora password manager.",
   "permissions": ["activeTab", "nativeMessaging", "scripting"],
   "background": {
