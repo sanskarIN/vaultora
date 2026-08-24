@@ -52,6 +52,10 @@ function disconnectPort(reason = "Vaultora native bridge disconnected.") {
 function settleNativeMessage(message) {
   if (isVaultStatusMessage(message)) {
     publishState({ connected: true, unlocked: message.unlocked, error: null });
+  } else if (isErrorMessage(message) && message.code === "locked") {
+    publishState({ connected: true, unlocked: false, error: null });
+  } else if (isErrorMessage(message) && message.code === "bridge_offline") {
+    publishState({ connected: false, unlocked: false, error: message.message });
   }
 
   const requestId = typeof message?.request_id === "string" ? message.request_id : "";
@@ -200,7 +204,9 @@ async function fillCredential(origin, entryId) {
   });
   const result = results?.[0]?.result;
   if (!result?.passwordFilled) {
-    throw new Error("Vaultora could not find a visible password field on this page.");
+    throw new Error(
+      "Vaultora could not find an eligible current-password field on this page.",
+    );
   }
   return result;
 }
@@ -232,7 +238,8 @@ function fillLoginCredential(credential) {
     isUsable,
   );
   const password =
-    passwordFields.find((input) => input.autocomplete === "current-password") ?? passwordFields[0];
+    passwordFields.find((input) => input.autocomplete === "current-password") ??
+    passwordFields.find((input) => input.autocomplete !== "new-password");
   if (!password) return { passwordFilled: false, usernameFilled: false };
 
   let usernameFilled = false;
