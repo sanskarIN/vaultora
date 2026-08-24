@@ -1,0 +1,66 @@
+name: Feature request
+description: Propose a Vaultora improvement while preserving the local-first security model.
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the user problem first. Features that affect encryption, storage, Android permissions, browser permissions, native messaging, or autofill should also explain the security boundary they need.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Vault core / encryption
+        - Vault entries and editing
+        - Password generator
+        - Backup and restore
+        - Android
+        - Windows / macOS / Linux
+        - Browser extension
+        - Accessibility / UI
+        - Documentation / tooling
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What user need is currently unmet?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Explain the intended result without including real credentials or sensitive data.
+    validations:
+      required: true
+
+  - type: textarea
+    id: security
+    attributes:
+      label: Security and permission impact
+      description: Note any new storage, Tauri capability, browser permission, native-message, clipboard, or decrypted-data handling requirement. Write "None" when the feature has no such impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Project principles
+      options:
+        - label: This proposal can preserve Vaultora's local-first encrypted-vault model.
+          required: true
+        - label: I have not included real credentials, vault files, keys, or other secrets.
+          required: true
